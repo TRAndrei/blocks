@@ -1,6 +1,7 @@
 package com.rtb.blocks.api.row;
 
 import com.google.common.collect.ImmutableList;
+import com.rtb.blocks.api.row.visitor.IVisitableRow;
 
 import java.util.Collections;
 import java.util.List;
@@ -26,6 +27,11 @@ public class SingleRowBlock<Sim> implements IRowBlock<Sim> {
     public SingleRowBlock(double value, Sim simulation) {
         this.value = value;
         this.simulations = Collections.singletonList(simulation);
+    }
+
+    @Override
+    public IVisitableRow<Sim> asVisitable() {
+        return new Visitable();
     }
 
     @Override
@@ -88,5 +94,20 @@ public class SingleRowBlock<Sim> implements IRowBlock<Sim> {
         }
 
         return new CombinedRowBlock<>(ImmutableList.of(this, other));
+    }
+
+    private class Visitable implements IVisitableRow<Sim> {
+        int current = 0;
+
+        @Override
+        public boolean tryConsume(ObjDoubleConsumer<Sim> consumer) {
+            if (current < simulations.size()) {
+                consumer.accept(simulations.get(current), value);
+                current++;
+                return true;
+            } else {
+                return false;
+            }
+        }
     }
 }

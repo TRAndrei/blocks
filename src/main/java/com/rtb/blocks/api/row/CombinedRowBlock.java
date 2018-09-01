@@ -1,6 +1,7 @@
 package com.rtb.blocks.api.row;
 
 import com.google.common.collect.ImmutableList;
+import com.rtb.blocks.api.row.visitor.IVisitableRow;
 
 import java.util.List;
 import java.util.function.DoubleUnaryOperator;
@@ -18,6 +19,11 @@ public class CombinedRowBlock<Sim> implements IRowBlock<Sim> {
 
     public CombinedRowBlock(List<IRowBlock<Sim>> blocks) {
         this.blocks = blocks;
+    }
+
+    @Override
+    public IVisitableRow<Sim> asVisitable() {
+        return new Visitable();
     }
 
     @Override
@@ -83,5 +89,30 @@ public class CombinedRowBlock<Sim> implements IRowBlock<Sim> {
         }
 
         return new CombinedRowBlock<>(ImmutableList.<IRowBlock<Sim>>builder().addAll(blocks).add(other).build());
+    }
+
+    private class Visitable implements IVisitableRow<Sim> {
+        int current = 0;
+        IVisitableRow<Sim> currentVisitable;
+
+        @Override
+        public boolean tryConsume(ObjDoubleConsumer<Sim> consumer) {
+            if (current < blocks.size()) {
+                do {
+                    if (currentVisitable == null) {
+                        currentVisitable = blocks.get(current).asVisitable();
+                    }
+
+                    if (currentVisitable.tryConsume(consumer)) {
+                        return true;
+                    } else {
+                        current++;
+                        currentVisitable = null;
+                    }
+                } while (current < blocks.size());
+            }
+
+            return false;
+        }
     }
 }

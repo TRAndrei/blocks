@@ -1,6 +1,6 @@
 package com.rtb.blocks.api.column;
 
-import com.rtb.blocks.api.column.visitor.IColumnValueVisitor;
+import com.rtb.blocks.api.column.visitor.IColumnValueVisitor.IColumnMajorVisitor;
 import com.rtb.blocks.api.column.visitor.IColumnValueVisitor.IRowMajorVisitor;
 import com.rtb.blocks.api.row.IRowValueBlock;
 
@@ -9,7 +9,7 @@ import java.util.function.Predicate;
 
 public interface IColumnValueBlock<Row, Value, Sim> extends IBaseColumnBlock<Row, IRowValueBlock<Value, Sim>, Sim,
         IColumnValueBlock<Row, Value, Sim>> {
-    void accept(IColumnValueVisitor<Row, Value, Sim> visitor);
+    void accept(IColumnMajorVisitor<Row, Value, Sim> visitor);
 
     void accept(IRowMajorVisitor<Row, Value, Sim> visitor);
 

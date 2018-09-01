@@ -1,9 +1,13 @@
 package com.rtb.blocks.api.row;
 
+import com.rtb.blocks.api.row.visitor.IVisitableRowValue;
+
 import java.util.List;
 import java.util.function.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
+import static com.rtb.blocks.api.row.EmptyRowValueBlock.Visitable.EMPTY_VISITABLE;
 
 public class EmptyRowValueBlock<Value, Sim> implements IRowValueBlock<Value, Sim> {
     private static final long serialVersionUID = 823524966029353222L;
@@ -11,6 +15,11 @@ public class EmptyRowValueBlock<Value, Sim> implements IRowValueBlock<Value, Sim
 
     private EmptyRowValueBlock() {
         //
+    }
+
+    @Override
+    public IVisitableRowValue<Value, Sim> asVisitable() {
+        return EMPTY_VISITABLE;
     }
 
     @Override
@@ -64,5 +73,18 @@ public class EmptyRowValueBlock<Value, Sim> implements IRowValueBlock<Value, Sim
     @Override
     public IRowValueBlock<Value, Sim> composeHorizontally(IRowValueBlock<Value, Sim> other) {
         return other;
+    }
+
+    static final class Visitable<Value, Sim> implements IVisitableRowValue<Value, Sim> {
+        static final IVisitableRowValue EMPTY_VISITABLE = new Visitable();
+
+        private Visitable() {
+            //
+        }
+
+        @Override
+        public boolean tryConsume(BiConsumer<Value, Sim> consumer) {
+            return false;
+        }
     }
 }

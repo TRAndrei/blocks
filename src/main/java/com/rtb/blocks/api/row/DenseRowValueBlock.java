@@ -2,6 +2,7 @@ package com.rtb.blocks.api.row;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
+import com.rtb.blocks.api.row.visitor.IVisitableRowValue;
 
 import java.util.List;
 import java.util.function.*;
@@ -18,6 +19,11 @@ public class DenseRowValueBlock<Value, Sim> implements IRowValueBlock<Value, Sim
     public DenseRowValueBlock(List<Value> values, List<Sim> simulations) {
         this.values = values;
         this.simulations = simulations;
+    }
+
+    @Override
+    public IVisitableRowValue<Value, Sim> asVisitable() {
+        return new Visitable();
     }
 
     @Override
@@ -95,5 +101,20 @@ public class DenseRowValueBlock<Value, Sim> implements IRowValueBlock<Value, Sim
         }
 
         return new CombinedRowValueBlock<>(ImmutableList.of(this, other));
+    }
+
+    private class Visitable implements IVisitableRowValue<Value, Sim> {
+        int current = 0;
+
+        @Override
+        public boolean tryConsume(BiConsumer<Value, Sim> consumer) {
+            if (current< values.size()) {
+                consumer.accept(values.get(current), simulations.get(current));
+                current++;
+                return true;
+            } else {
+                return false;
+            }
+        }
     }
 }

@@ -17,8 +17,9 @@ public class EmptyColumnBlock<Row, Sim> implements IColumnBlock<Row, Sim> {
         //
     }
 
+
     @Override
-    public void accept(IColumnVisitor<Row, Sim> visitor) {
+    public void accept(IColumnVisitor.IColumnMajorVisitor<Row, Sim> visitor) {
 
     }
 

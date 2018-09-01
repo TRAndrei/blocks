@@ -4,6 +4,8 @@ import com.google.common.collect.Maps;
 import com.rtb.blocks.api.column.visitor.IColumnValueVisitor;
 import com.rtb.blocks.api.row.IRowBlock;
 import com.rtb.blocks.api.row.IRowValueBlock;
+import com.rtb.blocks.api.row.visitor.IVisitableRow;
+import com.rtb.blocks.api.row.visitor.IVisitableRowValue;
 
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -25,12 +27,24 @@ public class ColumnValueBlock<Row, Value, Sim> implements IColumnValueBlock<Row,
     }
 
     @Override
-    public void accept(IColumnValueVisitor<Row, Value, Sim> visitor) {
-        for (Map.Entry<Row, IRowValueBlock<Value, Sim>> entry : rowsMap.entrySet()) {
-            Row row = entry.getKey();
-            IRowValueBlock<Value, Sim> rowValueBlock = entry.getValue();
+    public void accept(IColumnValueVisitor.IColumnMajorVisitor<Row, Value, Sim> visitor) {
+        List<Row> rows = rowsMap.entrySet().stream().map(Map.Entry::getKey).collect(Collectors.toList());
+        List<IVisitableRowValue<Value, Sim>> visitableRows =
+                rowsMap.entrySet().stream().map(e -> e.getValue().asVisitable()).collect(Collectors.toList());
 
-            rowValueBlock.accept((v, s) -> visitor.visit(v, row, s));
+        for (int simIdx = 0; simIdx < simulations.size(); simIdx++) {
+            Sim simulation = simulations.get(simIdx);
+
+            visitor.onSimulationStart(simulation);
+
+            for (int rowIdx = 0; rowIdx < rows.size(); rowIdx++) {
+                Row row = rows.get(rowIdx);
+                IVisitableRowValue<Value, Sim> visitableRow = visitableRows.get(rowIdx);
+
+                visitableRow.tryConsume((v, s) -> visitor.visit(v, row, s));
+            }
+
+            visitor.onSimulationEnd(simulation);
         }
     }
 

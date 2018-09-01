@@ -1,8 +1,14 @@
 package com.rtb.blocks.api.row;
 
-import java.util.function.*;
+import com.rtb.blocks.api.row.visitor.IVisitableRowValue;
+
+import java.util.function.BiConsumer;
+import java.util.function.Function;
+import java.util.function.Supplier;
+import java.util.function.ToDoubleFunction;
 
 public interface IRowValueBlock<Value, Sim> extends IBaseRowBlock<IRowValueBlock<Value, Sim>, Sim> {
+    IVisitableRowValue<Value, Sim> asVisitable();
 
     void accept(BiConsumer<Value, Sim> consumer);
 
