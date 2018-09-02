@@ -12,7 +12,7 @@ public interface IColumnBlock<Row, Sim> extends IBaseColumnBlock<Row, IRowBlock,
 
     void accept(IRowMajorVisitor<Row, Sim> visitor);
 
-    <R> IColumnBlock<R, Sim> convertRows(Function<Row, R> mapper);
+    <R> IColumnBlock<R, Sim> convertRows(Predicate<Row> rowFilter, Function<Row, R> mapper);
 
     <State> IColumnBlock<Row, Sim> convertValues(Predicate<Row> rowFilter,
                                                  Function<Row, State> rowStateBuilder, DoubleMapper<State, Row> mapper);

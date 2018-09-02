@@ -7,7 +7,6 @@ import com.rtb.blocks.api.column.IColumnBlock;
 import com.rtb.blocks.api.row.RowVisitors;
 import org.junit.Test;
 
-import java.sql.Time;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
@@ -33,10 +32,10 @@ public class DiscountFactorConversionTest {
 
     @Test
     public void testConversionPerf() {
-        int iteration = 1000;
-        int simulationCount = 100;
-        int rowCount = 100;
-        TimeUnit timeUnit = TimeUnit.MICROSECONDS;
+        int iteration = 10000;
+        int simulationCount = 10;
+        int rowCount = 10;
+        TimeUnit timeUnit = TimeUnit.MILLISECONDS;
 
         LocalDate today = LocalDate.of(2017, 01, 01);
 
@@ -51,9 +50,6 @@ public class DiscountFactorConversionTest {
         Stopwatch stopwatch = new Stopwatch();
         stopwatch.start();
         for (int iter = 0; iter < iteration; iter++){
-            if (iter == 10) {
-                buildDf = conversion = array = 0;
-            }
             long start = stopwatch.elapsedTime(timeUnit);
 
             IColumnBlock<LocalDate, String> zeroRatesBlock = BlockBuilders.BLOCK_BUILDERS.getColumnBlock(
@@ -81,4 +77,30 @@ public class DiscountFactorConversionTest {
 
     }
 
+    @Test
+    public void testRaw() {
+        int size = 10000;
+        int iteration = 100;
+
+        Stopwatch stopwatch = new Stopwatch();
+        stopwatch.start();
+
+        for (int iter = 0; iter < iteration; iter++) {
+            double[] zr = new double[size];
+            double[] df = new double[size];
+
+            for (int i = 0; i < size; i++) {
+                zr[i] = 1;
+            }
+
+            for (int i = 0; i < size; i++) {
+                zr[i] = df[i] + 1;
+            }
+        }
+
+        double elapsed = stopwatch.elapsedTime(TimeUnit.MILLISECONDS);
+        stopwatch.stop();
+
+        System.out.println("Raw test in " + elapsed/iteration);
+    }
 }

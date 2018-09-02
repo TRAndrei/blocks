@@ -29,7 +29,7 @@ public class EmptyColumnBlock<Row, Sim> implements IColumnBlock<Row, Sim> {
     }
 
     @Override
-    public <R> IColumnBlock<R, Sim> convertRows(Function<Row, R> mapper) {
+    public <R> IColumnBlock<R, Sim> convertRows(Predicate<Row> rowFilter, Function<Row, R> mapper) {
         return EMPTY_COLUMN;
     }
 

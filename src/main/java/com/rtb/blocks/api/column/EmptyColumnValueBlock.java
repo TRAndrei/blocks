@@ -28,7 +28,7 @@ public class EmptyColumnValueBlock<Row, Value, Sim> implements IColumnValueBlock
     }
 
     @Override
-    public <R> IColumnValueBlock<R, Value, Sim> convertRows(Function<Row, R> mapper) {
+    public <R> IColumnValueBlock<R, Value, Sim> convertRows(Predicate<Row> rowFilter, Function<Row, R> mapper) {
         return EMPTY_COLUMN;
     }
 
