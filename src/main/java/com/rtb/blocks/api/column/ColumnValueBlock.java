@@ -1,5 +1,6 @@
 package com.rtb.blocks.api.column;
 
+import com.google.common.collect.ImmutableList;
 import com.rtb.blocks.api.column.visitor.IColumnValueVisitor.IColumnMajorVisitor;
 import com.rtb.blocks.api.column.visitor.IColumnValueVisitor.IRowMajorVisitor;
 import com.rtb.blocks.api.row.IRowBlock;
@@ -29,7 +30,7 @@ public class ColumnValueBlock<Row, Value, Sim> implements IColumnValueBlock<Row,
     public void accept(IColumnMajorVisitor<Row, Value, Sim> visitor) {
         List<Row> rows = rowsMap.entrySet().stream().map(Map.Entry::getKey).collect(Collectors.toList());
         List<IVisitableValueRow<Value, Sim>> visitableRows =
-                rowsMap.entrySet().stream().map(e -> getRowBlock(e.getKey())).collect(Collectors.toList());
+                rowsMap.entrySet().stream().map(e -> getVisitableRowBlock(e.getKey())).collect(Collectors.toList());
 
         for (int simIdx = 0; simIdx < simulations.size(); simIdx++) {
             Sim simulation = simulations.get(simIdx);
@@ -155,27 +156,56 @@ public class ColumnValueBlock<Row, Value, Sim> implements IColumnValueBlock<Row,
     }
 
     @Override
-    public IVisitableValueRow<Value, Sim> getRowBlock(Row row) {
+    public IRowValueBlock<Value> getRowBlock(Row row) {
+        return rowsMap.get(row);
+    }
+
+    @Override
+    public IVisitableValueRow<Value, Sim> getVisitableRowBlock(Row row) {
         return rowsMap.get(row).getVisitableRow(simulations);
     }
 
     @Override
     public IColumnValueBlock<Row, Value, Sim> composeVertically(List<IColumnValueBlock<Row, Value, Sim>> other) {
-        return null;
+        int rowSize = getRowCount() + other.stream().mapToInt(IColumnValueBlock::getRowCount).sum();
+        Map<Row, IRowValueBlock<Value>> newRowMap = new LinkedHashMap<>(rowSize);
+
+        newRowMap.putAll(rowsMap);
+        for (int idx = 0; idx < other.size(); idx++) {
+            IColumnValueBlock<Row, Value, Sim> otherBlock = other.get(idx);
+
+            otherBlock.getRows().forEachOrdered(r -> newRowMap.put(r, otherBlock.getRowBlock(r)));
+        }
+
+        return new ColumnValueBlock<>(newRowMap, simulations);
     }
 
     @Override
     public IColumnValueBlock<Row, Value, Sim> composeVertically(IColumnValueBlock<Row, Value, Sim> other) {
-        return null;
+        int rowSize = getRowCount() + other.getRowCount();
+        Map<Row, IRowValueBlock<Value>> newRowMap = new LinkedHashMap<>(rowSize);
+
+        newRowMap.putAll(rowsMap);
+        other.getRows().forEachOrdered(r -> newRowMap.put(r, other.getRowBlock(r)));
+
+        return new ColumnValueBlock<>(newRowMap, simulations);
     }
 
     @Override
     public IColumnValueBlock<Row, Value, Sim> composeHorizontally(List<IColumnValueBlock<Row, Value, Sim>> other) {
-        return null;
+        List<IColumnValueBlock<Row, Value, Sim>> newBlocks =
+                Stream.concat(Stream.of(this), other.stream()).filter(b -> EMPTY_COLUMN != b).
+                collect(Collectors.toList());
+
+        return new CombinedColumnValueBlock<>(newBlocks);
     }
 
     @Override
     public IColumnValueBlock<Row, Value, Sim> composeHorizontally(IColumnValueBlock<Row, Value, Sim> other) {
-        return null;
+        if (EMPTY_COLUMN == other) {
+            return this;
+        }
+
+        return new CombinedColumnValueBlock<>(ImmutableList.of(this, other));
     }
 }

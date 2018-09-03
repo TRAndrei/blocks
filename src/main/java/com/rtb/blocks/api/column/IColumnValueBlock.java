@@ -2,12 +2,15 @@ package com.rtb.blocks.api.column;
 
 import com.rtb.blocks.api.column.visitor.IColumnValueVisitor.IColumnMajorVisitor;
 import com.rtb.blocks.api.column.visitor.IColumnValueVisitor.IRowMajorVisitor;
+import com.rtb.blocks.api.row.IRowValueBlock;
 import com.rtb.blocks.api.row.visitor.IVisitableValueRow;
 
 import java.util.function.Function;
 import java.util.function.Predicate;
 
-public interface IColumnValueBlock<Row, Value, Sim> extends IBaseColumnBlock<Row, IVisitableValueRow<Value, Sim>, Sim,
+public interface IColumnValueBlock<Row, Value, Sim> extends IBaseColumnBlock<Row,
+        IRowValueBlock<Value>, IVisitableValueRow<Value, Sim>,
+        Sim,
         IColumnValueBlock<Row, Value, Sim>> {
     void accept(IColumnMajorVisitor<Row, Value, Sim> visitor);
 

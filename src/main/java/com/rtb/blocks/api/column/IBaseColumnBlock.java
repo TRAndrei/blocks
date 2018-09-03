@@ -5,7 +5,8 @@ import com.rtb.blocks.api.row.IHorizontallyComposable;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 
-public interface IBaseColumnBlock<Row, VisitableRowBlock, Sim, Block extends IBaseColumnBlock<Row, VisitableRowBlock, Sim, Block>>
+public interface IBaseColumnBlock<Row, RowBlock, VisitableRowBlock, Sim, Block extends IBaseColumnBlock<Row, RowBlock,
+        VisitableRowBlock, Sim, Block>>
         extends IHorizontallyComposable<Block>, IVerticallyComposable<Block> {
 
     Stream<Sim> getSimulationIds();
@@ -22,5 +23,7 @@ public interface IBaseColumnBlock<Row, VisitableRowBlock, Sim, Block extends IBa
 
     Block getDenseBlock();
 
-    VisitableRowBlock getRowBlock(Row row);
+    RowBlock getRowBlock(Row row);
+
+    VisitableRowBlock getVisitableRowBlock(Row row);
 }
