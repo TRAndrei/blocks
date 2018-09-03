@@ -33,14 +33,15 @@ public class EmptyColumnValueBlock<Row, Value, Sim> implements IColumnValueBlock
     }
 
     @Override
-    public <State, V> IColumnValueBlock<Row, V, Sim> convertValues(Function<Row, State> rowStateBuilder,
+    public <State, V> IColumnValueBlock<Row, V, Sim> convertValues(Predicate<Row> rowFilter,
+                                                                   Function<Row, State> rowStateBuilder,
                                                                    IRowValueConvertor<State, Row, Value, V> convertor) {
         return EMPTY_COLUMN;
     }
 
     @Override
-    public <State> IColumnBlock<Row, Sim> toColumnBlock(Function<Row, State> rowStateBuilder,
-                                                        Function<Row, IRowConvertor<State, Row, Value>> mapper) {
+    public <State> IColumnBlock<Row, Sim> toColumnBlock(Predicate<Row> rowFilter, Function<Row, State> rowStateBuilder,
+                                                        IRowConvertor<State, Row, Value> mapper) {
         return EmptyColumnBlock.EMPTY_COLUMN;
     }
 

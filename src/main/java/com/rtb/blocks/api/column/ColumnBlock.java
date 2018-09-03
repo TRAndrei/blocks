@@ -70,15 +70,14 @@ public class ColumnBlock<Row, Sim> implements IColumnBlock<Row, Sim> {
     }
 
     @Override
-    public <State> IColumnBlock<Row, Sim> convertValues(Function<Row, State> rowStateBuilder,
-                                                        Function<Row, DoubleMapper<State, Row>> mapperFunction) {
+    public <State> IColumnBlock<Row, Sim> convertValues(Predicate<Row> rowFilter, Function<Row, State> rowStateBuilder,
+                                                        DoubleMapper<State, Row> mapper) {
         Map<Row, IRowBlock> newRowsMap = new LinkedHashMap<>(rowsMap.size());
 
         for (Map.Entry<Row, IRowBlock> entry : rowsMap.entrySet()) {
             Row row = entry.getKey();
-            DoubleMapper<State, Row> mapper = mapperFunction.apply(row);
 
-            if (mapper != null) {
+            if (rowFilter.test(row)) {
                 IRowBlock rowBlock = entry.getValue();
                 State rowState = rowStateBuilder.apply(row);
                 IRowBlock newRowBlock = rowBlock.map(v -> mapper.map(rowState, row, v));

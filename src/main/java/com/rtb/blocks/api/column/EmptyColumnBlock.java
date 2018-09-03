@@ -36,9 +36,9 @@ public class EmptyColumnBlock<Row, Sim> implements IColumnBlock<Row, Sim> {
     }
 
     @Override
-    public <State> IColumnBlock<Row, Sim> convertValues(Function<Row, State> rowStateBuilder,
-                                                        Function<Row, DoubleMapper<State, Row>> mapper) {
-        return EMPTY_COLUMN;
+    public <State> IColumnBlock<Row, Sim> convertValues(Predicate<Row> rowFilter, Function<Row, State> rowStateBuilder,
+                                                        DoubleMapper<State, Row> mapper) {
+        return null;
     }
 
     @Override

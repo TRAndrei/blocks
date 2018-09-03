@@ -23,8 +23,8 @@ public class DiscountFactorConversionTest {
                 (r, s) -> 1);
 
         LocalDate today = LocalDate.of(2017, 01, 01);
-        IColumnBlock<LocalDate, String> discountFactors = zeroRatesBlock.convertValues(
-                r -> ChronoUnit.DAYS.between(today, r), row -> (s, r, v) -> Math.exp(-1 * v * s / 365));
+        IColumnBlock<LocalDate, String> discountFactors = zeroRatesBlock.convertValues(r -> true,
+                r -> ChronoUnit.DAYS.between(today, r), (s, r, v) -> Math.exp(-1 * v * s / 365));
 
         int rowCount = discountFactors.getRowCount();
     }
@@ -58,8 +58,8 @@ public class DiscountFactorConversionTest {
             long currentDf = stopwatch.elapsedTime(timeUnit);
             buildDf += currentDf - start;
 
-            IColumnBlock<LocalDate, String> discountFactors = zeroRatesBlock.convertValues(
-                    r -> ChronoUnit.DAYS.between(today, r), row -> (s, r, v) -> v + s);
+            IColumnBlock<LocalDate, String> discountFactors = zeroRatesBlock.convertValues(r -> true,
+                    r -> ChronoUnit.DAYS.between(today, r), (s, r, v) -> v + s);
 
             long currentConversion = stopwatch.elapsedTime(timeUnit);
             conversion += currentConversion - currentDf;

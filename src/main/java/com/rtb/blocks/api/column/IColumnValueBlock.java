@@ -15,11 +15,12 @@ public interface IColumnValueBlock<Row, Value, Sim> extends IBaseColumnBlock<Row
 
     <R> IColumnValueBlock<R, Value, Sim> convertRows(Predicate<Row> rowFilter, Function<Row, R> mapper);
 
-    <State, V> IColumnValueBlock<Row, V, Sim> convertValues(Function<Row, State> rowStateBuilder,
+    <State, V> IColumnValueBlock<Row, V, Sim> convertValues(Predicate<Row> rowFilter,
+                                                            Function<Row, State> rowStateBuilder,
                                                             IRowValueConvertor<State, Row, Value, V> convertor);
 
-    <State> IColumnBlock<Row, Sim> toColumnBlock(Function<Row, State> rowStateBuilder,
-                                                 Function<Row, IRowConvertor<State, Row, Value>> mapper);
+    <State> IColumnBlock<Row, Sim> toColumnBlock(Predicate<Row> rowFilter, Function<Row, State> rowStateBuilder,
+                                                 IRowConvertor<State, Row, Value> mapper);
 
     interface IRowValueConvertor<S, R, T, U> {
         U convert(S state, R row, T value);

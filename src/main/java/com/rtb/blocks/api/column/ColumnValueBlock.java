@@ -71,7 +71,8 @@ public class ColumnValueBlock<Row, Value, Sim> implements IColumnValueBlock<Row,
     }
 
     @Override
-    public <State, V> IColumnValueBlock<Row, V, Sim> convertValues(Function<Row, State> rowStateBuilder,
+    public <State, V> IColumnValueBlock<Row, V, Sim> convertValues(Predicate<Row> rowFilter,
+                                                                   Function<Row, State> rowStateBuilder,
                                                                    IRowValueConvertor<State, Row, Value, V> convertor) {
 
         Map<Row, IRowValueBlock<V>> newRowsMap = new LinkedHashMap<>(rowsMap.size());
@@ -79,27 +80,28 @@ public class ColumnValueBlock<Row, Value, Sim> implements IColumnValueBlock<Row,
         for (Map.Entry<Row, IRowValueBlock<Value>> entry : rowsMap.entrySet()) {
             Row row = entry.getKey();
 
-            IRowValueBlock<Value> rowValueBlock = entry.getValue();
-            State rowState = rowStateBuilder.apply(row);
-            IRowValueBlock<V> newRowValueBlock = rowValueBlock.
-                    convertValues(v -> convertor.convert(rowState, row, v));
+            if (rowFilter.test(row)) {
+                IRowValueBlock<Value> rowValueBlock = entry.getValue();
+                State rowState = rowStateBuilder.apply(row);
+                IRowValueBlock<V> newRowValueBlock = rowValueBlock.
+                        convertValues(v -> convertor.convert(rowState, row, v));
 
-            newRowsMap.put(row, newRowValueBlock);
+                newRowsMap.put(row, newRowValueBlock);
+            }
         }
 
         return newRowsMap.isEmpty() ? EMPTY_COLUMN : new ColumnValueBlock<>(newRowsMap, simulations);
     }
 
     @Override
-    public <State> IColumnBlock<Row, Sim> toColumnBlock(Function<Row, State> rowStateBuilder,
-                                                        Function<Row, IRowConvertor<State, Row, Value>> mapperFunction) {
+    public <State> IColumnBlock<Row, Sim> toColumnBlock(Predicate<Row> rowFilter, Function<Row, State> rowStateBuilder,
+                                                        IRowConvertor<State, Row, Value> mapper) {
         Map<Row, IRowBlock> newRowsMap = new LinkedHashMap<>(rowsMap.size());
 
         for (Map.Entry<Row, IRowValueBlock<Value>> entry : rowsMap.entrySet()) {
             Row row = entry.getKey();
-            IRowConvertor<State, Row, Value> mapper = mapperFunction.apply(row);
 
-            if (mapper != null) {
+            if (rowFilter.test(row)) {
                 IRowValueBlock<Value> rowValueBlock = entry.getValue();
                 State rowState = rowStateBuilder.apply(row);
                 IRowBlock newRowValueBlock = rowValueBlock.toRowBlock(v -> mapper.convert(rowState, row, v));

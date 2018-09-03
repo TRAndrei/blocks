@@ -14,8 +14,8 @@ public interface IColumnBlock<Row, Sim> extends IBaseColumnBlock<Row, IVisitable
 
     <R> IColumnBlock<R, Sim> convertRows(Predicate<Row> rowFilter, Function<Row, R> mapper);
 
-    <State> IColumnBlock<Row, Sim> convertValues(Function<Row, State> rowStateBuilder,
-                                                 Function<Row, DoubleMapper<State, Row>> mapperFunction);
+    <State> IColumnBlock<Row, Sim> convertValues(Predicate<Row> rowFilter, Function<Row, State> rowStateBuilder,
+                                                 DoubleMapper<State, Row> mapper);
 
     @FunctionalInterface
     interface DoubleMapper<State, Row> {
