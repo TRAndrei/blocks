@@ -10,7 +10,7 @@ public class RowValueBuilder<Value, Sim> implements IBlockBuilders.IRowValueBuil
     }
 
     @Override
-    public IRowValueBlock<Value, Sim> build() {
+    public IRowValueBlock<Value> build() {
         return null;
     }
 }

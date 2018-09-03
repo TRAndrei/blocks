@@ -45,12 +45,12 @@ public interface IBlockBuilders {
     interface IRowValueBuilder<Value, Sim> {
         IRowValueBuilder<Value, Sim> setValue(Value value, Sim sim);
 
-        IRowValueBlock<Value, Sim> build();
+        IRowValueBlock<Value> build();
     }
 
     interface IRowBuilder<Sim> {
         IRowBuilder<Sim> setValue(double value, Sim sim);
 
-        IRowBlock<Sim> build();
+        IRowBlock build();
     }
 }

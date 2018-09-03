@@ -12,11 +12,15 @@ import com.rtb.blocks.api.row.IRowValueBlock;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.*;
+import java.util.function.BiFunction;
+import java.util.function.DoubleFunction;
+import java.util.function.Function;
+import java.util.function.ToDoubleBiFunction;
 import java.util.stream.Collectors;
 
 public class BlockBuilders implements IBlockBuilders {
     public static final IBlockBuilders BLOCK_BUILDERS = new BlockBuilders();
+
     private BlockBuilders() {
 
     }
@@ -29,9 +33,9 @@ public class BlockBuilders implements IBlockBuilders {
 
     @Override
     public <Row, Value, Sim> IColumnValueBlock<Row, Value, Sim> getColumnValueBlock(List<Sim> simulations,
-                             List<Row> rows, Function<Row, List<Value>> valuesProvider) {
-        Map<Row, IRowValueBlock<Value, Sim>> rowsMap = rows.stream().collect(Collectors.toMap(Function.identity(),
-                r -> new DenseRowValueBlock<>(valuesProvider.apply(r), simulations), (e1, e2)->e1, LinkedHashMap::new));
+                                                                                    List<Row> rows, Function<Row, List<Value>> valuesProvider) {
+        Map<Row, IRowValueBlock<Value>> rowsMap = rows.stream().collect(Collectors.toMap(Function.identity(),
+                r -> new DenseRowValueBlock<>(valuesProvider.apply(r)), (e1, e2) -> e1, LinkedHashMap::new));
 
         return new ColumnValueBlock<>(rowsMap, simulations);
     }
@@ -44,13 +48,13 @@ public class BlockBuilders implements IBlockBuilders {
     @Override
     public <Row, Sim> IColumnBlock<Row, Sim> getColumnBlock(List<Sim> simulations, List<Row> rows, ToDoubleBiFunction<Row, Sim> valueProvider) {
         return getColumnBlock(simulations, rows,
-                r-> simulations.stream().mapToDouble(s -> valueProvider.applyAsDouble(r, s)).toArray());
+                r -> simulations.stream().mapToDouble(s -> valueProvider.applyAsDouble(r, s)).toArray());
     }
 
     @Override
     public <Row, Sim> IColumnBlock<Row, Sim> getColumnBlock(List<Sim> simulations, List<Row> rows, Function<Row, double[]> valuesProvider) {
-        Map<Row, IRowBlock<Sim>> rowsMap = rows.stream().collect(Collectors.toMap(Function.identity(),
-                r -> new DenseRowBlock<>(valuesProvider.apply(r), simulations), (e1, e2)->e1, LinkedHashMap::new));
+        Map<Row, IRowBlock> rowsMap = rows.stream().collect(Collectors.toMap(Function.identity(),
+                r -> new DenseRowBlock(valuesProvider.apply(r)), (e1, e2) -> e1, LinkedHashMap::new));
 
         return new ColumnBlock<>(rowsMap, simulations);
     }

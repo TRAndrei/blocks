@@ -2,111 +2,85 @@ package com.rtb.blocks.api.row;
 
 import com.google.common.collect.ImmutableList;
 import com.rtb.blocks.api.row.visitor.IVisitableRow;
+import com.rtb.blocks.api.row.visitor.IVisitableValueRow;
 
-import java.util.Collections;
 import java.util.List;
+import java.util.function.BiConsumer;
+import java.util.function.DoubleConsumer;
 import java.util.function.DoubleUnaryOperator;
 import java.util.function.ObjDoubleConsumer;
-import java.util.function.Predicate;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static com.rtb.blocks.api.row.EmptyRowBlock.EMPTY_ROW;
 
-public class SingleRowBlock<Sim> implements IRowBlock<Sim> {
+public class SingleRowBlock implements IRowBlock {
     private static final long serialVersionUID = 137164116081742975L;
     private final double value;
-    private final List<Sim> simulations;
 
-    public SingleRowBlock(double value, List<Sim> simulations) {
+    public SingleRowBlock(double value) {
         this.value = value;
-        this.simulations = simulations;
-    }
-
-    public SingleRowBlock(double value, Sim simulation) {
-        this.value = value;
-        this.simulations = Collections.singletonList(simulation);
     }
 
     @Override
-    public IVisitableRow<Sim> asVisitable() {
-        return new Visitable();
+    public int getSize() {
+        return 1;
     }
 
     @Override
-    public void accept(ObjDoubleConsumer<Sim> consumer) {
-        for (int idx = 0; idx < simulations.size(); idx++) {
-            consumer.accept(simulations.get(idx), value);
-        }
+    public void accept(DoubleConsumer consumer) {
+        consumer.accept(value);
     }
 
     @Override
-    public IRowBlock<Sim> map(DoubleUnaryOperator mapper) {
-        return new SingleRowBlock<>(mapper.applyAsDouble(value), simulations);
+    public IRowBlock map(DoubleUnaryOperator mapper) {
+        return new SingleRowBlock(mapper.applyAsDouble(value));
     }
 
     @Override
-    public <R> R collect(Supplier<R> supplier, ObjectDoubleFunction<R, Sim> accumulator) {
-        R state = supplier.get();
-
-        for (int idx = 0; idx < simulations.size(); idx++) {
-            state = accumulator.apply(state, value, simulations.get(idx));
-        }
-
-        return state;
+    public <Sim> IVisitableRow<Sim> getVisitableRow(List<Sim> simulations) {
+        return new VisitableRow<>(simulations);
     }
 
     @Override
-    public Stream<Sim> getSimulationIds() {
-        return simulations.stream();
-    }
-
-    @Override
-    public int getSimulationCount() {
-        return simulations.size();
-    }
-
-    @Override
-    public IRowBlock<Sim> getDenseBlock() {
-        return this;
-    }
-
-    @Override
-    public IRowBlock<Sim> filterBySimulation(Predicate<Sim> simulationIdPredicate) {
-        List<Sim> newSimulations = simulations.stream().filter(simulationIdPredicate).collect(Collectors.toList());
-
-        return newSimulations.isEmpty() ? EMPTY_ROW : new SingleRowBlock<>(value, newSimulations);
-    }
-
-    @Override
-    public IRowBlock<Sim> composeHorizontally(List<IRowBlock<Sim>> other) {
-        List<IRowBlock<Sim>> newBlocks = Stream.concat(Stream.of(this), other.stream()).filter(b -> EMPTY_ROW != b).
+    public IRowBlock composeHorizontally(List<IRowBlock> other) {
+        List<IRowBlock> newBlocks = Stream.concat(Stream.of(this), other.stream()).filter(b -> EMPTY_ROW != b).
                 collect(Collectors.toList());
 
-        return new CombinedRowBlock<>(newBlocks);
+        return new CombinedRowBlock(newBlocks);
     }
 
     @Override
-    public IRowBlock<Sim> composeHorizontally(IRowBlock<Sim> other) {
+    public IRowBlock composeHorizontally(IRowBlock other) {
         if (EMPTY_ROW == other) {
             return this;
         }
 
-        return new CombinedRowBlock<>(ImmutableList.of(this, other));
+        return new CombinedRowBlock(ImmutableList.of(this, other));
     }
 
-    private class Visitable implements IVisitableRow<Sim> {
-        int current = 0;
+    private class VisitableRow<Sim> implements IVisitableRow<Sim> {
+        private final List<Sim> simulations;
+        private int idx = 0;
+
+        private VisitableRow(List<Sim> simulations) {
+            this.simulations = simulations;
+        }
 
         @Override
         public boolean tryConsume(ObjDoubleConsumer<Sim> consumer) {
-            if (current < simulations.size()) {
-                consumer.accept(simulations.get(current), value);
-                current++;
+            if (idx < simulations.size()) {
+                consumer.accept(simulations.get(idx++), value);
                 return true;
-            } else {
-                return false;
+            }
+
+            return false;
+        }
+
+        @Override
+        public void consumeRemaining(ObjDoubleConsumer<Sim> consumer) {
+            for (; idx < simulations.size(); idx++) {
+                consumer.accept(simulations.get(idx), value);
             }
         }
     }

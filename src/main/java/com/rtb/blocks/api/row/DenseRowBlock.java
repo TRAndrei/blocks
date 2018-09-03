@@ -1,128 +1,93 @@
 package com.rtb.blocks.api.row;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.rtb.blocks.api.row.visitor.IVisitableRow;
 
 import java.util.List;
+import java.util.function.DoubleConsumer;
 import java.util.function.DoubleUnaryOperator;
 import java.util.function.ObjDoubleConsumer;
-import java.util.function.Predicate;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static com.rtb.blocks.api.row.EmptyRowBlock.EMPTY_ROW;
 
-public class DenseRowBlock<Sim> implements IRowBlock<Sim> {
+public class DenseRowBlock implements IRowBlock {
     private static final long serialVersionUID = -5779075886311091969L;
     private final double[] values;
-    private final List<Sim> simulations;
 
-    public DenseRowBlock(double[] values, List<Sim> simulations) {
+    public DenseRowBlock(double[] values) {
         this.values = values;
-        this.simulations = simulations;
     }
 
     @Override
-    public IVisitableRow<Sim> asVisitable() {
-        return new Visitable();
+    public int getSize() {
+        return values.length;
     }
 
     @Override
-    public void accept(ObjDoubleConsumer<Sim> consumer) {
+    public void accept(DoubleConsumer consumer) {
         for (int idx = 0; idx < values.length; idx++) {
-            consumer.accept(simulations.get(idx), values[idx]);
+            consumer.accept(values[idx]);
         }
     }
 
     @Override
-    public IRowBlock<Sim> map(DoubleUnaryOperator mapper) {
+    public IRowBlock map(DoubleUnaryOperator mapper) {
         double[] newValues = new double[values.length];
         for (int idx = 0; idx < values.length; idx++) {
             newValues[idx] = mapper.applyAsDouble(values[idx]);
         }
 
-        return new DenseRowBlock<>(newValues, simulations);
+        return new DenseRowBlock(newValues);
     }
 
     @Override
-    public <R> R collect(Supplier<R> supplier, ObjectDoubleFunction<R, Sim> accumulator) {
-        R state = supplier.get();
-
-        for (int idx = 0; idx < values.length; idx++) {
-            state = accumulator.apply(state, values[idx], simulations.get(idx));
-        }
-
-        return state;
+    public <Sim> IVisitableRow<Sim> getVisitableRow(List<Sim> simulations) {
+        Preconditions.checkArgument(values.length == simulations.size());
+        return new VisitableRow<>(simulations);
     }
 
     @Override
-    public Stream<Sim> getSimulationIds() {
-        return simulations.stream();
-    }
-
-    @Override
-    public int getSimulationCount() {
-        return simulations.size();
-    }
-
-    @Override
-    public IRowBlock<Sim> getDenseBlock() {
-        return this;
-    }
-
-    @Override
-    public IRowBlock<Sim> filterBySimulation(Predicate<Sim> simulationIdPredicate) {
-        List<Sim> newSimulations = simulations.stream().filter(simulationIdPredicate).collect(Collectors.toList());
-
-        if (newSimulations.size() == simulations.size()) {
-            return this;
-        } else if (newSimulations.isEmpty()) {
-            return null;
-        }
-
-        double[] newValues = new double[newSimulations.size()];
-        int newIdx = 0;
-        Sim currentSim = newSimulations.get(newIdx);
-
-        for (int idx = 0; idx < simulations.size(); idx++) {
-            if (currentSim == simulations.get(idx)) {
-                newValues[newIdx++] = values[idx];
-                currentSim = newSimulations.get(newIdx);
-            }
-        }
-
-        return new DenseRowBlock<>(newValues, newSimulations);
-    }
-
-    @Override
-    public IRowBlock<Sim> composeHorizontally(List<IRowBlock<Sim>> other) {
-        List<IRowBlock<Sim>> newBlocks = Stream.concat(Stream.of(this), other.stream()).filter(b -> EMPTY_ROW != b).
+    public IRowBlock composeHorizontally(List<IRowBlock> other) {
+        List<IRowBlock> newBlocks = Stream.concat(Stream.of(this), other.stream()).filter(b -> EMPTY_ROW != b).
                 collect(Collectors.toList());
 
-        return new CombinedRowBlock<>(newBlocks);
+        return new CombinedRowBlock(newBlocks);
     }
 
     @Override
-    public IRowBlock<Sim> composeHorizontally(IRowBlock<Sim> other) {
+    public IRowBlock composeHorizontally(IRowBlock other) {
         if (EMPTY_ROW == other) {
             return this;
         }
 
-        return new CombinedRowBlock<>(ImmutableList.of(this, other));
+        return new CombinedRowBlock(ImmutableList.of(this, other));
     }
 
-    private class Visitable implements IVisitableRow<Sim> {
-        int current = 0;
+    private class VisitableRow<Sim> implements IVisitableRow<Sim> {
+        private final List<Sim> simulations;
+        private int idx;
+
+        private VisitableRow(List<Sim> simulations) {
+            this.simulations = simulations;
+        }
 
         @Override
         public boolean tryConsume(ObjDoubleConsumer<Sim> consumer) {
-            if (current < values.length) {
-                consumer.accept(simulations.get(current), values[current]);
-                current++;
+            if (idx < simulations.size()) {
+                consumer.accept(simulations.get(idx), values[idx++]);
                 return true;
-            } else {
-                return false;
+            }
+
+            return false;
+        }
+
+        @Override
+        public void consumeRemaining(ObjDoubleConsumer<Sim> consumer) {
+            for(; idx < simulations.size(); idx++) {
+                consumer.accept(simulations.get(idx), values[idx]);
             }
         }
     }

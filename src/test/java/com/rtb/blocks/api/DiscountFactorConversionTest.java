@@ -4,7 +4,6 @@ import com.google.common.base.Stopwatch;
 import com.google.common.collect.ImmutableList;
 import com.rtb.blocks.api.builder.BlockBuilders;
 import com.rtb.blocks.api.column.IColumnBlock;
-import com.rtb.blocks.api.row.RowVisitors;
 import org.junit.Test;
 
 import java.time.LocalDate;
@@ -24,10 +23,10 @@ public class DiscountFactorConversionTest {
                 (r, s) -> 1);
 
         LocalDate today = LocalDate.of(2017, 01, 01);
-        IColumnBlock<LocalDate, String> discountFactors = zeroRatesBlock.convertValues(r -> true,
-                r -> ChronoUnit.DAYS.between(today, r), (s, r, v) -> Math.exp(-1 * v * s /365 ));
+        IColumnBlock<LocalDate, String> discountFactors = zeroRatesBlock.convertValues(
+                r -> ChronoUnit.DAYS.between(today, r), row -> (s, r, v) -> Math.exp(-1 * v * s / 365));
 
-        double[] dfs = RowVisitors.getRowValues(discountFactors.getRowBlock(LocalDate.of(2018, 01, 01)));
+        int rowCount = discountFactors.getRowCount();
     }
 
     @Test
@@ -49,7 +48,8 @@ public class DiscountFactorConversionTest {
 
         Stopwatch stopwatch = new Stopwatch();
         stopwatch.start();
-        for (int iter = 0; iter < iteration; iter++){
+        int val = 0;
+        for (int iter = 0; iter < iteration; iter++) {
             long start = stopwatch.elapsedTime(timeUnit);
 
             IColumnBlock<LocalDate, String> zeroRatesBlock = BlockBuilders.BLOCK_BUILDERS.getColumnBlock(
@@ -58,29 +58,29 @@ public class DiscountFactorConversionTest {
             long currentDf = stopwatch.elapsedTime(timeUnit);
             buildDf += currentDf - start;
 
-            IColumnBlock<LocalDate, String> discountFactors = zeroRatesBlock.convertValues(r -> true,
-                    r -> ChronoUnit.DAYS.between(today, r), (s, r, v) -> v + s);
+            IColumnBlock<LocalDate, String> discountFactors = zeroRatesBlock.convertValues(
+                    r -> ChronoUnit.DAYS.between(today, r), row -> (s, r, v) -> v + s);
 
             long currentConversion = stopwatch.elapsedTime(timeUnit);
             conversion += currentConversion - currentDf;
-
-            double[] dfs = RowVisitors.getRowValues(discountFactors.getRowBlock(maturities.get(0)));
+            val += discountFactors.getRowCount();
 
             array += stopwatch.elapsedTime(timeUnit) - currentConversion;
         }
 
         stopwatch.stop();
+        int r = val;
 
-        System.out.println("ZR building in " + buildDf/iteration + " " + timeUnit);
-        System.out.println("DF conversion in " + conversion/iteration + " " + timeUnit);
-        System.out.println("DF array building in " + array/iteration + " " + timeUnit);
+        System.out.println("ZR building in " + buildDf / iteration + " " + timeUnit);
+        System.out.println("DF conversion in " + conversion / iteration + " " + timeUnit);
+        System.out.println("DF array building in " + array / iteration + " " + timeUnit);
 
     }
 
     @Test
     public void testRaw() {
-        int size = 10000;
-        int iteration = 100;
+        int size = 100;
+        int iteration = 10000;
 
         Stopwatch stopwatch = new Stopwatch();
         stopwatch.start();
@@ -101,6 +101,6 @@ public class DiscountFactorConversionTest {
         double elapsed = stopwatch.elapsedTime(TimeUnit.MILLISECONDS);
         stopwatch.stop();
 
-        System.out.println("Raw test in " + elapsed/iteration);
+        System.out.println("Raw test in " + elapsed / iteration);
     }
 }

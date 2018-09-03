@@ -1,118 +1,116 @@
 package com.rtb.blocks.api.row;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.rtb.blocks.api.row.visitor.IVisitableRow;
 
 import java.util.List;
+import java.util.function.DoubleConsumer;
 import java.util.function.DoubleUnaryOperator;
 import java.util.function.ObjDoubleConsumer;
-import java.util.function.Predicate;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static com.rtb.blocks.api.row.EmptyRowBlock.EMPTY_ROW;
 
-public class CombinedRowBlock<Sim> implements IRowBlock<Sim> {
+public class CombinedRowBlock implements IRowBlock {
     private static final long serialVersionUID = -6563412556291079221L;
-    private final List<IRowBlock<Sim>> blocks;
+    private final List<IRowBlock> blocks;
 
-    public CombinedRowBlock(List<IRowBlock<Sim>> blocks) {
+    public CombinedRowBlock(List<IRowBlock> blocks) {
         this.blocks = blocks;
     }
 
     @Override
-    public IVisitableRow<Sim> asVisitable() {
-        return new Visitable();
+    public int getSize() {
+        return blocks.stream().mapToInt(IRowBlock::getSize).sum();
     }
 
     @Override
-    public void accept(ObjDoubleConsumer<Sim> consumer) {
+    public void accept(DoubleConsumer consumer) {
         for (int idx = 0; idx < blocks.size(); idx++) {
             blocks.get(idx).accept(consumer);
         }
     }
 
     @Override
-    public IRowBlock<Sim> map(DoubleUnaryOperator mapper) {
-        return new CombinedRowBlock<>(blocks.stream().map(block -> block.map(mapper)).collect(Collectors.toList()));
+    public IRowBlock map(DoubleUnaryOperator mapper) {
+        return new CombinedRowBlock(blocks.stream().map(block -> block.map(mapper)).collect(Collectors.toList()));
     }
 
     @Override
-    public <R> R collect(Supplier<R> supplier, ObjectDoubleFunction<R, Sim> accumulator) {
-        R state = supplier.get();
-
-        for (int idx = 0; idx < blocks.size(); idx++) {
-            R previousState = state;
-            state = blocks.get(idx).collect(() -> previousState, accumulator);
-        }
-
-        return state;
+    public <Sim> IVisitableRow<Sim> getVisitableRow(List<Sim> simulations) {
+        Preconditions.checkArgument(getSize() == simulations.size());
+        return new VisitableRow<>(simulations);
     }
 
     @Override
-    public Stream<Sim> getSimulationIds() {
-        return Tools.concat(blocks.stream().map(IBaseRowBlock::getSimulationIds).collect(Collectors.toList()));
-    }
-
-    @Override
-    public int getSimulationCount() {
-        return blocks.stream().reduce(0, (s, b) -> s += b.getSimulationCount(), (s1, s2) -> s1 + s2);
-    }
-
-    @Override
-    public IRowBlock<Sim> getDenseBlock() {
-        List<IRowBlock<Sim>> newBlocks = blocks.stream().map(IBaseRowBlock::getDenseBlock).filter(b -> EMPTY_ROW != b).
-                collect(Collectors.toList());
-        return blocks.isEmpty() ? EMPTY_ROW : new CombinedRowBlock<>(newBlocks);
-    }
-
-    @Override
-    public IRowBlock<Sim> filterBySimulation(Predicate<Sim> simulationIdPredicate) {
-        List<IRowBlock<Sim>> newBlocks = blocks.stream().map(block -> block.filterBySimulation(simulationIdPredicate)).
-                collect(Collectors.toList());
-        return blocks.isEmpty() ? EMPTY_ROW : new CombinedRowBlock<>(newBlocks);
-    }
-
-    @Override
-    public IRowBlock<Sim> composeHorizontally(List<IRowBlock<Sim>> other) {
-        List<IRowBlock<Sim>> newBlocks = Stream.concat(blocks.stream(), other.stream()).filter(b -> EMPTY_ROW != b).
+    public IRowBlock composeHorizontally(List<IRowBlock> other) {
+        List<IRowBlock> newBlocks = Stream.concat(blocks.stream(), other.stream()).filter(b -> EMPTY_ROW != b).
                 collect(Collectors.toList());
 
-        return new CombinedRowBlock<>(newBlocks);
+        return new CombinedRowBlock(newBlocks);
     }
 
     @Override
-    public IRowBlock<Sim> composeHorizontally(IRowBlock<Sim> other) {
+    public IRowBlock composeHorizontally(IRowBlock other) {
         if (EMPTY_ROW == other) {
             return this;
         }
 
-        return new CombinedRowBlock<>(ImmutableList.<IRowBlock<Sim>>builder().addAll(blocks).add(other).build());
+        return new CombinedRowBlock(ImmutableList.<IRowBlock>builder().addAll(blocks).add(other).build());
     }
 
-    private class Visitable implements IVisitableRow<Sim> {
-        int current = 0;
-        IVisitableRow<Sim> currentVisitable;
+    private class VisitableRow<Sim> implements IVisitableRow<Sim> {
+        private final List<Sim> simulations;
+        private int simIdx = 0;
+        private int blockIdx = 0;
+        private int startSimIdx = 0;
+        private IVisitableRow<Sim> currentVisitableBlock = null;
+
+        private VisitableRow(List<Sim> simulations) {
+            this.simulations = simulations;
+        }
 
         @Override
         public boolean tryConsume(ObjDoubleConsumer<Sim> consumer) {
-            if (current < blocks.size()) {
+            if (blockIdx < blocks.size() && simIdx < simulations.size()) {
                 do {
-                    if (currentVisitable == null) {
-                        currentVisitable = blocks.get(current).asVisitable();
+                    if (currentVisitableBlock == null) {
+                        IRowBlock rowBlock = blocks.get(blockIdx);
+                        startSimIdx = simIdx;
+                        currentVisitableBlock = rowBlock.getVisitableRow(simulations.subList(simIdx,
+                                simIdx + rowBlock.getSize()));
                     }
 
-                    if (currentVisitable.tryConsume(consumer)) {
+                    if (currentVisitableBlock.tryConsume(consumer)) {
+                        simIdx++;
                         return true;
                     } else {
-                        current++;
-                        currentVisitable = null;
+                        blockIdx++;
+                        currentVisitableBlock = null;
                     }
-                } while (current < blocks.size());
+                } while (blockIdx < blocks.size());
             }
 
             return false;
+        }
+
+        @Override
+        public void consumeRemaining(ObjDoubleConsumer<Sim> consumer) {
+            if (currentVisitableBlock != null) {
+                currentVisitableBlock.consumeRemaining(consumer);
+                blockIdx++;
+            }
+
+            for (; blockIdx < blocks.size(); blockIdx++) {
+                IRowBlock rowBlock = blocks.get(blockIdx);
+                int blockSize = rowBlock.getSize();
+                IVisitableRow<Sim> visitableRow = rowBlock.getVisitableRow(
+                        simulations.subList(startSimIdx, startSimIdx + blockSize));
+                visitableRow.consumeRemaining(consumer);
+                startSimIdx += blockSize;
+            }
         }
     }
 }

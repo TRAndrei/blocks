@@ -1,14 +1,14 @@
 package com.rtb.blocks.api.column;
 
 import com.rtb.blocks.api.column.visitor.IColumnValueVisitor;
-import com.rtb.blocks.api.row.IRowValueBlock;
+import com.rtb.blocks.api.row.visitor.IVisitableValueRow;
 
 import java.util.List;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 
-import static com.rtb.blocks.api.row.EmptyRowValueBlock.EMPTY_ROW;
+import static com.rtb.blocks.api.row.visitor.EmptyVisitableValueRow.EMPTY;
 
 public class EmptyColumnValueBlock<Row, Value, Sim> implements IColumnValueBlock<Row, Value, Sim> {
     public static final IColumnValueBlock EMPTY_COLUMN = new EmptyColumnValueBlock();
@@ -33,12 +33,14 @@ public class EmptyColumnValueBlock<Row, Value, Sim> implements IColumnValueBlock
     }
 
     @Override
-    public <State, V> IColumnValueBlock<Row, V, Sim> convertValues(Predicate<Row> rowFilter, Function<Row, State> rowStateBuilder, IRowValueConvertor<State, Row, Value, V> convertor) {
+    public <State, V> IColumnValueBlock<Row, V, Sim> convertValues(Function<Row, State> rowStateBuilder,
+                                                                   IRowValueConvertor<State, Row, Value, V> convertor) {
         return EMPTY_COLUMN;
     }
 
     @Override
-    public <State> IColumnBlock<Row, Sim> toColumnBlock(Predicate<Row> rowFilter, Function<Row, State> rowStateBuilder, IRowConvertor<State, Row, Value> mapper) {
+    public <State> IColumnBlock<Row, Sim> toColumnBlock(Function<Row, State> rowStateBuilder,
+                                                        Function<Row, IRowConvertor<State, Row, Value>> mapper) {
         return EmptyColumnBlock.EMPTY_COLUMN;
     }
 
@@ -78,12 +80,12 @@ public class EmptyColumnValueBlock<Row, Value, Sim> implements IColumnValueBlock
     }
 
     @Override
-    public IRowValueBlock<Value, Sim> getRowBlock(Row row) {
-        return EMPTY_ROW;
+    public IVisitableValueRow<Value, Sim> getRowBlock(Row row) {
+        return EMPTY;
     }
 
     @Override
-    public IColumnValueBlock<Row, Value, Sim> composeVerically(List<IColumnValueBlock<Row, Value, Sim>> other) {
+    public IColumnValueBlock<Row, Value, Sim> composeVertically(List<IColumnValueBlock<Row, Value, Sim>> other) {
         return null;
     }
 

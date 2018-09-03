@@ -1,24 +1,21 @@
 package com.rtb.blocks.api.row;
 
-import com.rtb.blocks.api.row.visitor.IVisitableRowValue;
+import com.rtb.blocks.api.row.visitor.IVisitableValueRow;
 
-import java.util.function.BiConsumer;
+import java.io.Serializable;
+import java.util.List;
+import java.util.function.Consumer;
 import java.util.function.Function;
-import java.util.function.Supplier;
 import java.util.function.ToDoubleFunction;
 
-public interface IRowValueBlock<Value, Sim> extends IBaseRowBlock<IRowValueBlock<Value, Sim>, Sim> {
-    IVisitableRowValue<Value, Sim> asVisitable();
+public interface IRowValueBlock<Value> extends IHorizontallyComposable<IRowValueBlock<Value>>, Serializable {
+    int getSize();
 
-    void accept(BiConsumer<Value, Sim> consumer);
+    void accept(Consumer<Value> consumer);
 
-    <V> IRowValueBlock<V, Sim> convertValues(Function<Value, V> mapper);
+    <V> IRowValueBlock<V> convertValues(Function<Value, V> mapper);
 
-    IRowBlock<Sim> toRowBlock(ToDoubleFunction<Value> mapper);
+    IRowBlock toRowBlock(ToDoubleFunction<Value> mapper);
 
-    <R> R collect(Supplier<R> supplier, IRowConsumer<R, Value, Sim> accumulator);
-
-    interface IRowConsumer<State, Value, Sim> {
-        State consume(State state, Value value, Sim simulation);
-    }
+    <Sim> IVisitableValueRow<Value, Sim> getVisitableRow(List<Sim> simulations);
 }

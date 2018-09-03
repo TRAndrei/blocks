@@ -5,7 +5,6 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.rtb.blocks.api.builder.BlockBuilders;
 import com.rtb.blocks.api.column.IColumnBlock;
-import com.rtb.blocks.api.column.visitor.IColumnVisitor;
 import com.rtb.blocks.api.column.visitor.IColumnVisitor.IColumnMajorVisitor;
 import org.junit.Test;
 

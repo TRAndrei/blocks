@@ -1,90 +1,58 @@
 package com.rtb.blocks.api.row;
 
-import com.rtb.blocks.api.row.visitor.IVisitableRowValue;
+import com.rtb.blocks.api.row.visitor.IVisitableValueRow;
 
 import java.util.List;
-import java.util.function.*;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.function.ToDoubleFunction;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
-import static com.rtb.blocks.api.row.EmptyRowValueBlock.Visitable.EMPTY_VISITABLE;
+import static com.rtb.blocks.api.row.visitor.EmptyVisitableValueRow.EMPTY;
 
-public class EmptyRowValueBlock<Value, Sim> implements IRowValueBlock<Value, Sim> {
-    private static final long serialVersionUID = 823524966029353222L;
+public class EmptyRowValueBlock<Value> implements IRowValueBlock<Value> {
     public static final IRowValueBlock EMPTY_ROW = new EmptyRowValueBlock();
+    private static final long serialVersionUID = 823524966029353222L;
 
     private EmptyRowValueBlock() {
         //
     }
 
     @Override
-    public IVisitableRowValue<Value, Sim> asVisitable() {
-        return EMPTY_VISITABLE;
-    }
-
-    @Override
-    public void accept(BiConsumer<Value, Sim> consumer) {
-
-    }
-
-    @Override
-    public <V> IRowValueBlock<V, Sim> convertValues(Function<Value, V> mapper) {
-        return EMPTY_ROW;
-    }
-
-    @Override
-    public IRowBlock<Sim> toRowBlock(ToDoubleFunction<Value> mapper) {
-        return EmptyRowBlock.EMPTY_ROW;
-    }
-
-    @Override
-    public <R> R collect(Supplier<R> supplier, IRowConsumer<R, Value, Sim> accumulator) {
-        return supplier.get();
-    }
-
-    @Override
-    public Stream<Sim> getSimulationIds() {
-        return Stream.empty();
-    }
-
-    @Override
-    public int getSimulationCount() {
+    public int getSize() {
         return 0;
     }
 
     @Override
-    public IRowValueBlock<Value, Sim> getDenseBlock() {
-        return this;
+    public void accept(Consumer<Value> consumer) {
+
     }
 
     @Override
-    public IRowValueBlock<Value, Sim> filterBySimulation(Predicate<Sim> simulationIdPredicate) {
-        return this;
+    public <V> IRowValueBlock<V> convertValues(Function<Value, V> mapper) {
+        return EMPTY_ROW;
     }
 
     @Override
-    public IRowValueBlock<Value, Sim> composeHorizontally(List<IRowValueBlock<Value, Sim>> blocks) {
-        List<IRowValueBlock<Value, Sim>> newBlocks = blocks.stream().filter(b -> EMPTY_ROW != b).
+    public IRowBlock toRowBlock(ToDoubleFunction<Value> mapper) {
+        return EmptyRowBlock.EMPTY_ROW;
+    }
+
+    @Override
+    public <Sim> IVisitableValueRow<Value, Sim> getVisitableRow(List<Sim> simulations) {
+        return EMPTY;
+    }
+
+    @Override
+    public IRowValueBlock<Value> composeHorizontally(List<IRowValueBlock<Value>> blocks) {
+        List<IRowValueBlock<Value>> newBlocks = blocks.stream().filter(b -> EMPTY_ROW != b).
                 collect(Collectors.toList());
 
         return newBlocks.isEmpty() ? EMPTY_ROW : new CombinedRowValueBlock<>(newBlocks);
     }
 
     @Override
-    public IRowValueBlock<Value, Sim> composeHorizontally(IRowValueBlock<Value, Sim> other) {
+    public IRowValueBlock<Value> composeHorizontally(IRowValueBlock<Value> other) {
         return other;
-    }
-
-    static final class Visitable<Value, Sim> implements IVisitableRowValue<Value, Sim> {
-        static final IVisitableRowValue EMPTY_VISITABLE = new Visitable();
-
-        private Visitable() {
-            //
-        }
-
-        @Override
-        public boolean tryConsume(BiConsumer<Value, Sim> consumer) {
-            return false;
-        }
     }
 }

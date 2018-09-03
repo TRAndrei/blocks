@@ -16,20 +16,19 @@ import java.util.stream.Stream;
 import static com.rtb.blocks.api.column.EmptyColumnBlock.EMPTY_COLUMN;
 
 public class ColumnBlock<Row, Sim> implements IColumnBlock<Row, Sim> {
-    private final Map<Row, IRowBlock<Sim>> rowsMap;
+    private final Map<Row, IRowBlock> rowsMap;
     private final List<Sim> simulations;
 
-    public ColumnBlock(Map<Row, IRowBlock<Sim>> rowsMap, List<Sim> simulations) {
+    public ColumnBlock(Map<Row, IRowBlock> rowsMap, List<Sim> simulations) {
         this.rowsMap = rowsMap;
         this.simulations = simulations;
     }
-
 
     @Override
     public void accept(IColumnMajorVisitor<Row, Sim> visitor) {
         List<Row> rows = rowsMap.entrySet().stream().map(Map.Entry::getKey).collect(Collectors.toList());
         List<IVisitableRow<Sim>> visitableRows =
-                rowsMap.entrySet().stream().map(e -> e.getValue().asVisitable()).collect(Collectors.toList());
+                rowsMap.entrySet().stream().map(e -> getRowBlock(e.getKey())).collect(Collectors.toList());
 
         for (int simIdx = 0; simIdx < simulations.size(); simIdx++) {
             Sim simulation = simulations.get(simIdx);
@@ -49,19 +48,20 @@ public class ColumnBlock<Row, Sim> implements IColumnBlock<Row, Sim> {
 
     @Override
     public void accept(IRowMajorVisitor<Row, Sim> visitor) {
-        for (Map.Entry<Row, IRowBlock<Sim>> entry : rowsMap.entrySet()) {
+        for (Map.Entry<Row, IRowBlock> entry : rowsMap.entrySet()) {
             Row row = entry.getKey();
-            IRowBlock<Sim> rowBlock = entry.getValue();
+            IRowBlock rowBlock = entry.getValue();
+            IVisitableRow<Sim> visitableRow = rowBlock.getVisitableRow(simulations);
 
             visitor.onRowStart(row);
-            rowBlock.accept((s, v) -> visitor.visit(v, row, s));
+            visitableRow.consumeRemaining((s, v) -> visitor.visit(v, row, s));
             visitor.onRowEnd(row);
         }
     }
 
     @Override
     public <R> IColumnBlock<R, Sim> convertRows(Predicate<Row> rowFilter, Function<Row, R> mapper) {
-        Map<R, IRowBlock<Sim>> newRowsMap =
+        Map<R, IRowBlock> newRowsMap =
                 rowsMap.entrySet().stream().filter(e -> rowFilter.test(e.getKey())).
                         collect(Collectors.toMap(e -> mapper.apply(e.getKey()), Map.Entry::getValue, (e1, e2) -> e1,
                                 () -> new LinkedHashMap<>(rowsMap.size())));
@@ -70,16 +70,18 @@ public class ColumnBlock<Row, Sim> implements IColumnBlock<Row, Sim> {
     }
 
     @Override
-    public <State> IColumnBlock<Row, Sim> convertValues(Predicate<Row> rowFilter, Function<Row, State> rowStateBuilder, DoubleMapper<State, Row> mapper) {
-        Map<Row, IRowBlock<Sim>> newRowsMap = new LinkedHashMap<>(rowsMap.size());
+    public <State> IColumnBlock<Row, Sim> convertValues(Function<Row, State> rowStateBuilder,
+                                                        Function<Row, DoubleMapper<State, Row>> mapperFunction) {
+        Map<Row, IRowBlock> newRowsMap = new LinkedHashMap<>(rowsMap.size());
 
-        for (Map.Entry<Row, IRowBlock<Sim>> entry : rowsMap.entrySet()) {
+        for (Map.Entry<Row, IRowBlock> entry : rowsMap.entrySet()) {
             Row row = entry.getKey();
+            DoubleMapper<State, Row> mapper = mapperFunction.apply(row);
 
-            if (rowFilter.test(row)) {
-                IRowBlock<Sim> rowBlock = entry.getValue();
+            if (mapper != null) {
+                IRowBlock rowBlock = entry.getValue();
                 State rowState = rowStateBuilder.apply(row);
-                IRowBlock<Sim> newRowBlock = rowBlock.map(v -> mapper.map(rowState, row, v));
+                IRowBlock newRowBlock = rowBlock.map(v -> mapper.map(rowState, row, v));
 
                 newRowsMap.put(row, newRowBlock);
             }
@@ -110,17 +112,13 @@ public class ColumnBlock<Row, Sim> implements IColumnBlock<Row, Sim> {
 
     @Override
     public IColumnBlock<Row, Sim> filterBySimulation(Predicate<Sim> simulationIdPredicate) {
-        Map<Row, IRowBlock<Sim>> newRowsMap =
-                rowsMap.entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey,
-                        e -> e.getValue().filterBySimulation(simulationIdPredicate), (e1, e2) -> e1,
-                        () -> new LinkedHashMap<>(rowsMap.size())));
-
-        return new ColumnBlock<>(newRowsMap, simulations);
+        List<Sim> newSimulations = simulations.stream().filter(simulationIdPredicate).collect(Collectors.toList());
+        return newSimulations.isEmpty() ? EMPTY_COLUMN : new ColumnBlock<>(rowsMap, newSimulations);
     }
 
     @Override
     public IColumnBlock<Row, Sim> filterByRow(Predicate<Row> rowPredicate) {
-        Map<Row, IRowBlock<Sim>> newRowsMap =
+        Map<Row, IRowBlock> newRowsMap =
                 rowsMap.entrySet().stream().filter(e -> rowPredicate.test(e.getKey())).collect(
                         Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (e1, e2) -> e1,
                                 () -> new LinkedHashMap<>(rowsMap.size())));
@@ -134,12 +132,12 @@ public class ColumnBlock<Row, Sim> implements IColumnBlock<Row, Sim> {
     }
 
     @Override
-    public IRowBlock getRowBlock(Row row) {
-        return rowsMap.get(row);
+    public IVisitableRow<Sim> getRowBlock(Row row) {
+        return rowsMap.get(row).getVisitableRow(simulations);
     }
 
     @Override
-    public IColumnBlock<Row, Sim> composeVerically(List<IColumnBlock<Row, Sim>> iColumnBlocks) {
+    public IColumnBlock<Row, Sim> composeVertically(List<IColumnBlock<Row, Sim>> iColumnBlocks) {
         return null;
     }
 

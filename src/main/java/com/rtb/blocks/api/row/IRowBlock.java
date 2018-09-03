@@ -2,20 +2,17 @@ package com.rtb.blocks.api.row;
 
 import com.rtb.blocks.api.row.visitor.IVisitableRow;
 
+import java.io.Serializable;
+import java.util.List;
+import java.util.function.DoubleConsumer;
 import java.util.function.DoubleUnaryOperator;
-import java.util.function.ObjDoubleConsumer;
-import java.util.function.Supplier;
 
-public interface IRowBlock<Sim> extends IBaseRowBlock<IRowBlock<Sim>, Sim> {
-    IVisitableRow<Sim> asVisitable();
+public interface IRowBlock extends IHorizontallyComposable<IRowBlock>, Serializable {
+    int getSize();
 
-    void accept(ObjDoubleConsumer<Sim> consumer);
+    void accept(DoubleConsumer consumer);
 
-    IRowBlock<Sim> map(DoubleUnaryOperator mapper);
+    IRowBlock map(DoubleUnaryOperator mapper);
 
-    <R> R collect(Supplier<R> supplier, ObjectDoubleFunction<R, Sim> accumulator);
-
-    interface ObjectDoubleFunction<State, Sim> {
-        State apply(State state, double value, Sim simulation);
-    }
+    <Sim> IVisitableRow<Sim> getVisitableRow(List<Sim> simulations);
 }

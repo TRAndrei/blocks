@@ -2,6 +2,7 @@ package com.rtb.blocks.api.column;
 
 import com.rtb.blocks.api.column.visitor.IColumnVisitor;
 import com.rtb.blocks.api.row.IRowBlock;
+import com.rtb.blocks.api.row.visitor.IVisitableRow;
 
 import java.util.List;
 import java.util.function.Function;
@@ -9,6 +10,7 @@ import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 import static com.rtb.blocks.api.row.EmptyRowBlock.EMPTY_ROW;
+import static com.rtb.blocks.api.row.visitor.EmptyVisitableRow.EMPTY;
 
 public class EmptyColumnBlock<Row, Sim> implements IColumnBlock<Row, Sim> {
     public static final IColumnBlock EMPTY_COLUMN = new EmptyColumnBlock();
@@ -34,7 +36,8 @@ public class EmptyColumnBlock<Row, Sim> implements IColumnBlock<Row, Sim> {
     }
 
     @Override
-    public <State> IColumnBlock<Row, Sim> convertValues(Predicate<Row> rowFilter, Function<Row, State> rowStateBuilder, DoubleMapper<State, Row> mapper) {
+    public <State> IColumnBlock<Row, Sim> convertValues(Function<Row, State> rowStateBuilder,
+                                                        Function<Row, DoubleMapper<State, Row>> mapper) {
         return EMPTY_COLUMN;
     }
 
@@ -74,12 +77,12 @@ public class EmptyColumnBlock<Row, Sim> implements IColumnBlock<Row, Sim> {
     }
 
     @Override
-    public IRowBlock getRowBlock(Row row) {
-        return EMPTY_ROW;
+    public IVisitableRow<Sim> getRowBlock(Row row) {
+        return EMPTY;
     }
 
     @Override
-    public IColumnBlock<Row, Sim> composeVerically(List<IColumnBlock<Row, Sim>> other) {
+    public IColumnBlock<Row, Sim> composeVertically(List<IColumnBlock<Row, Sim>> other) {
         return null;
     }
 
