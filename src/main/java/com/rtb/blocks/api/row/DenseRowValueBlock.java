@@ -6,7 +6,6 @@ import com.rtb.blocks.api.row.visitor.IVisitableValueRow;
 
 import java.util.List;
 import java.util.function.BiConsumer;
-import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.ToDoubleFunction;
 import java.util.stream.Collectors;
@@ -28,10 +27,8 @@ public class DenseRowValueBlock<Value> implements IRowValueBlock<Value> {
     }
 
     @Override
-    public void accept(Consumer<Value> consumer) {
-        for (int idx = 0; idx < values.size(); idx++) {
-            consumer.accept(values.get(idx));
-        }
+    public boolean isDelegate() {
+        return false;
     }
 
     @Override
@@ -86,9 +83,14 @@ public class DenseRowValueBlock<Value> implements IRowValueBlock<Value> {
 
         @Override
         public void consumeRemaining(BiConsumer<Value, Sim> consumer) {
-            for(; idx < simulations.size(); idx++) {
+            for (; idx < simulations.size(); idx++) {
                 consumer.accept(values.get(idx), simulations.get(idx));
             }
+        }
+
+        @Override
+        public boolean hasValueForSimulation(int simulationIndex) {
+            return true;
         }
     }
 }

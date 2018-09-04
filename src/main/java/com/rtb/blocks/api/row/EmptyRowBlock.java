@@ -23,8 +23,8 @@ public class EmptyRowBlock implements IRowBlock {
     }
 
     @Override
-    public void accept(DoubleConsumer consumer) {
-
+    public boolean isDelegate() {
+        return false;
     }
 
     @Override

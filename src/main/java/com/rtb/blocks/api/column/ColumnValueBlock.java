@@ -1,8 +1,10 @@
 package com.rtb.blocks.api.column;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 import com.rtb.blocks.api.column.visitor.IColumnValueVisitor.IColumnMajorVisitor;
 import com.rtb.blocks.api.column.visitor.IColumnValueVisitor.IRowMajorVisitor;
+import com.rtb.blocks.api.row.IBaseRowBlock;
 import com.rtb.blocks.api.row.IRowBlock;
 import com.rtb.blocks.api.row.IRowValueBlock;
 import com.rtb.blocks.api.row.visitor.IVisitableValueRow;
@@ -152,7 +154,26 @@ public class ColumnValueBlock<Row, Value, Sim> implements IColumnValueBlock<Row,
 
     @Override
     public IColumnValueBlock<Row, Value, Sim> getDenseBlock() {
-        return this;
+        List<IVisitableValueRow<Value, Sim>> delegateBlocks =
+                rowsMap.entrySet().stream().map(Map.Entry::getValue).filter(IBaseRowBlock::isDelegate).
+                        map(e -> e.getVisitableRow(simulations)).collect(Collectors.toList());
+
+        if (delegateBlocks.isEmpty()) {
+            return this;
+        }
+
+        List<Sim> newSimulations = Lists.newArrayList();
+
+        for (int simIdx = 0; simIdx < simulations.size(); simIdx++) {
+            for (int rowIdx = 0; rowIdx < delegateBlocks.size(); rowIdx++) {
+                if (delegateBlocks.get(rowIdx).hasValueForSimulation(simIdx)) {
+                    newSimulations.add(simulations.get(simIdx));
+                    break;
+                }
+            }
+        }
+
+        return new ColumnValueBlock<>(rowsMap, newSimulations);
     }
 
     @Override

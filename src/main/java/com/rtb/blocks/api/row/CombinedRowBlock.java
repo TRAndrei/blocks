@@ -4,8 +4,8 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.rtb.blocks.api.row.visitor.IVisitableRow;
 
+import java.util.Arrays;
 import java.util.List;
-import java.util.function.DoubleConsumer;
 import java.util.function.DoubleUnaryOperator;
 import java.util.function.ObjDoubleConsumer;
 import java.util.stream.Collectors;
@@ -16,9 +16,20 @@ import static com.rtb.blocks.api.row.EmptyRowBlock.EMPTY_ROW;
 public class CombinedRowBlock implements IRowBlock {
     private static final long serialVersionUID = -6563412556291079221L;
     private final List<IRowBlock> blocks;
+    private final int[] startIndices;
+    private boolean isDelegate;
 
     public CombinedRowBlock(List<IRowBlock> blocks) {
         this.blocks = blocks;
+        this.startIndices = new int[blocks.size()];
+
+        int currentIdx = 0;
+        for (int idx = 0; idx < blocks.size(); idx++) {
+            startIndices[idx] = currentIdx;
+            IRowBlock block = blocks.get(idx);
+            currentIdx += block.getSize();
+            isDelegate |= block.isDelegate();
+        }
     }
 
     @Override
@@ -27,10 +38,8 @@ public class CombinedRowBlock implements IRowBlock {
     }
 
     @Override
-    public void accept(DoubleConsumer consumer) {
-        for (int idx = 0; idx < blocks.size(); idx++) {
-            blocks.get(idx).accept(consumer);
-        }
+    public boolean isDelegate() {
+        return isDelegate;
     }
 
     @Override
@@ -111,6 +120,19 @@ public class CombinedRowBlock implements IRowBlock {
                 visitableRow.consumeRemaining(consumer);
                 startSimIdx += blockSize;
             }
+        }
+
+        @Override
+        public boolean hasValueForSimulation(int simulationIndex) {
+            if (!isDelegate) {
+                return true;
+            }
+
+            int blockIndex = Arrays.binarySearch(startIndices, simulationIndex);
+            blockIndex = blockIndex >= 0 ? blockIndex : -(blockIndex + 1);
+            int endSimulationIdx = blockIndex < blocks.size() - 1 ? startIndices[blockIndex + 1] : simulations.size();
+            return blocks.get(blockIndex).getVisitableRow(simulations.subList(startIndices[blockIndex],
+                    endSimulationIdx)).hasValueForSimulation(simulationIndex);
         }
     }
 }

@@ -6,4 +6,6 @@ public interface IVisitableValueRow<Value, Sim> {
     boolean tryConsume(BiConsumer<Value, Sim> consumer);
 
     void consumeRemaining(BiConsumer<Value, Sim> consumer);
+
+    boolean hasValueForSimulation(int simulationIndex);
 }

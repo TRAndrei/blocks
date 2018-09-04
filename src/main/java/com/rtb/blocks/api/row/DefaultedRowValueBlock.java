@@ -12,34 +12,37 @@ import java.util.stream.Stream;
 
 import static com.rtb.blocks.api.row.EmptyRowValueBlock.EMPTY_ROW;
 
-public class SingleRowValueBlock<Value, Sim> implements IRowValueBlock<Value> {
-    private static final long serialVersionUID = 3138934904095516007L;
+public class DefaultedRowValueBlock<Value> implements IRowValueBlock<Value> {
+    private final Value defaultValue;
     private final Value value;
-    private final List<Sim> simulations;
+    private final int valueIdx;
+    private final int valueCount;
 
-    public SingleRowValueBlock(Value value, List<Sim> simulations) {
+    public DefaultedRowValueBlock(Value defaultValue, Value value, int valueIdx, int valueCount) {
+        this.defaultValue = defaultValue;
         this.value = value;
-        this.simulations = simulations;
+        this.valueIdx = valueIdx;
+        this.valueCount = valueCount;
     }
 
     @Override
     public int getSize() {
-        return 1;
+        return valueCount;
     }
 
     @Override
     public boolean isDelegate() {
-        return false;
+        return true;
     }
 
     @Override
     public <V> IRowValueBlock<V> convertValues(Function<Value, V> mapper) {
-        return new SingleRowValueBlock<>(mapper.apply(value), simulations);
+        return new DefaultedRowValueBlock<>(mapper.apply(defaultValue), mapper.apply(value), valueIdx, valueCount);
     }
 
     @Override
     public IRowBlock toRowBlock(ToDoubleFunction<Value> mapper) {
-        return new SingleRowBlock(mapper.applyAsDouble(value));
+        return new DefaultedRowBlock(mapper.applyAsDouble(defaultValue), mapper.applyAsDouble(value), valueIdx, valueCount);
     }
 
     @Override
@@ -75,7 +78,8 @@ public class SingleRowValueBlock<Value, Sim> implements IRowValueBlock<Value> {
         @Override
         public boolean tryConsume(BiConsumer<Value, Sim> consumer) {
             if (idx < simulations.size()) {
-                consumer.accept(value, simulations.get(idx++));
+                consumer.accept(idx == valueIdx ? value : defaultValue, simulations.get(idx));
+                idx++;
                 return true;
             }
             return false;
@@ -84,13 +88,13 @@ public class SingleRowValueBlock<Value, Sim> implements IRowValueBlock<Value> {
         @Override
         public void consumeRemaining(BiConsumer<Value, Sim> consumer) {
             for (; idx < simulations.size(); idx++) {
-                consumer.accept(value, simulations.get(idx));
+                consumer.accept(idx == valueIdx ? value : defaultValue, simulations.get(idx));
             }
         }
 
         @Override
         public boolean hasValueForSimulation(int simulationIndex) {
-            return true;
+            return valueIdx == simulationIndex;
         }
     }
 }

@@ -18,4 +18,9 @@ public class EmptyVisitableRow<Sim> implements IVisitableRow<Sim> {
     public void consumeRemaining(ObjDoubleConsumer<Sim> consumer) {
 
     }
+
+    @Override
+    public boolean hasValueForSimulation(int simulationIndex) {
+        return false;
+    }
 }

@@ -24,8 +24,8 @@ public class EmptyRowValueBlock<Value> implements IRowValueBlock<Value> {
     }
 
     @Override
-    public void accept(Consumer<Value> consumer) {
-
+    public boolean isDelegate() {
+        return false;
     }
 
     @Override

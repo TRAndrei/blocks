@@ -20,4 +20,9 @@ public class EmptyVisitableValueRow<Value, Sim> implements IVisitableValueRow<Va
     public void consumeRemaining(BiConsumer<Value, Row> consumer) {
 
     }
+
+    @Override
+    public boolean hasValueForSimulation(int simulationIndex) {
+        return false;
+    }
 }

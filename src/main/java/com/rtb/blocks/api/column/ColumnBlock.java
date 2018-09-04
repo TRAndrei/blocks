@@ -1,10 +1,10 @@
 package com.rtb.blocks.api.column;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Maps;
+import com.google.common.collect.Lists;
 import com.rtb.blocks.api.column.visitor.IColumnVisitor.IColumnMajorVisitor;
 import com.rtb.blocks.api.column.visitor.IColumnVisitor.IRowMajorVisitor;
-import com.rtb.blocks.api.row.CombinedRowBlock;
+import com.rtb.blocks.api.row.IBaseRowBlock;
 import com.rtb.blocks.api.row.IRowBlock;
 import com.rtb.blocks.api.row.visitor.IVisitableRow;
 
@@ -130,7 +130,26 @@ public class ColumnBlock<Row, Sim> implements IColumnBlock<Row, Sim> {
 
     @Override
     public IColumnBlock<Row, Sim> getDenseBlock() {
-        return this;
+        List<IVisitableRow<Sim>> delegateBlocks =
+                rowsMap.entrySet().stream().map(Map.Entry::getValue).filter(IBaseRowBlock::isDelegate).
+                        map(e -> e.getVisitableRow(simulations)).collect(Collectors.toList());
+
+        if (delegateBlocks.isEmpty()) {
+            return this;
+        }
+
+        List<Sim> newSimulations = Lists.newArrayList();
+
+        for (int simIdx = 0; simIdx < simulations.size(); simIdx++) {
+            for (int rowIdx = 0; rowIdx < delegateBlocks.size(); rowIdx++) {
+                if (delegateBlocks.get(rowIdx).hasValueForSimulation(simIdx)) {
+                    newSimulations.add(simulations.get(simIdx));
+                    break;
+                }
+            }
+        }
+
+        return new ColumnBlock<>(rowsMap, newSimulations);
     }
 
     @Override
@@ -149,7 +168,7 @@ public class ColumnBlock<Row, Sim> implements IColumnBlock<Row, Sim> {
         Map<Row, IRowBlock> newRowMap = new LinkedHashMap<>(rowSize);
 
         newRowMap.putAll(rowsMap);
-        for(int idx = 0; idx < other.size(); idx++) {
+        for (int idx = 0; idx < other.size(); idx++) {
             IColumnBlock<Row, Sim> otherBlock = other.get(idx);
 
             otherBlock.getRows().forEachOrdered(r -> newRowMap.put(r, otherBlock.getRowBlock(r)));

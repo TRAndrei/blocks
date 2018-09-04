@@ -11,27 +11,33 @@ import java.util.stream.Stream;
 
 import static com.rtb.blocks.api.row.EmptyRowBlock.EMPTY_ROW;
 
-public class SingleRowBlock implements IRowBlock {
-    private static final long serialVersionUID = 137164116081742975L;
+public class DefaultedRowBlock implements IRowBlock {
+    private final double defaultValue;
     private final double value;
+    private final int valueIdx;
+    private final int valueCount;
 
-    public SingleRowBlock(double value) {
+    public DefaultedRowBlock(double defaultValue, double value, int valueIdx, int valueCount) {
+        this.defaultValue = defaultValue;
         this.value = value;
+        this.valueIdx = valueIdx;
+        this.valueCount = valueCount;
     }
 
     @Override
     public int getSize() {
-        return 1;
+        return valueCount;
     }
 
     @Override
     public boolean isDelegate() {
-        return false;
+        return true;
     }
 
     @Override
     public IRowBlock map(DoubleUnaryOperator mapper) {
-        return new SingleRowBlock(mapper.applyAsDouble(value));
+        return new DefaultedRowBlock(mapper.applyAsDouble(defaultValue), mapper.applyAsDouble(value), valueIdx,
+                valueCount);
     }
 
     @Override
@@ -67,7 +73,8 @@ public class SingleRowBlock implements IRowBlock {
         @Override
         public boolean tryConsume(ObjDoubleConsumer<Sim> consumer) {
             if (idx < simulations.size()) {
-                consumer.accept(simulations.get(idx++), value);
+                consumer.accept(simulations.get(idx), idx == valueIdx ? value : defaultValue);
+                idx++;
                 return true;
             }
 
@@ -77,13 +84,13 @@ public class SingleRowBlock implements IRowBlock {
         @Override
         public void consumeRemaining(ObjDoubleConsumer<Sim> consumer) {
             for (; idx < simulations.size(); idx++) {
-                consumer.accept(simulations.get(idx), value);
+                consumer.accept(simulations.get(idx), idx == valueIdx ? value : defaultValue);
             }
         }
 
         @Override
         public boolean hasValueForSimulation(int simulationIndex) {
-            return true;
+            return valueIdx == simulationIndex;
         }
     }
 }

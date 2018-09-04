@@ -5,7 +5,6 @@ import com.google.common.collect.ImmutableList;
 import com.rtb.blocks.api.row.visitor.IVisitableRow;
 
 import java.util.List;
-import java.util.function.DoubleConsumer;
 import java.util.function.DoubleUnaryOperator;
 import java.util.function.ObjDoubleConsumer;
 import java.util.stream.Collectors;
@@ -27,10 +26,8 @@ public class DenseRowBlock implements IRowBlock {
     }
 
     @Override
-    public void accept(DoubleConsumer consumer) {
-        for (int idx = 0; idx < values.length; idx++) {
-            consumer.accept(values[idx]);
-        }
+    public boolean isDelegate() {
+        return false;
     }
 
     @Override
@@ -86,9 +83,14 @@ public class DenseRowBlock implements IRowBlock {
 
         @Override
         public void consumeRemaining(ObjDoubleConsumer<Sim> consumer) {
-            for(; idx < simulations.size(); idx++) {
+            for (; idx < simulations.size(); idx++) {
                 consumer.accept(simulations.get(idx), values[idx]);
             }
+        }
+
+        @Override
+        public boolean hasValueForSimulation(int simulationIndex) {
+            return true;
         }
     }
 }
